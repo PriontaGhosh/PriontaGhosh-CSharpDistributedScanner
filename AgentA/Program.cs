@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Collections.Generic;
 
 class Program
 {
@@ -10,10 +11,27 @@ class Program
 
         string[] txtFiles = Directory.GetFiles(folderPath, "*.txt");
 
-        Console.WriteLine("Found " + txtFiles.Length + " .txt files:");
         foreach (string file in txtFiles)
         {
-            Console.WriteLine(file);
+            string content = File.ReadAllText(file);
+            string[] words = content.Split(new char[] { ' ', '.', ',', '?', '!', ';', ':', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+
+            Dictionary<string, int> wordCount = new Dictionary<string, int>();
+
+            foreach (string word in words)
+            {
+                string cleanedWord = word.ToLower();
+                if (wordCount.ContainsKey(cleanedWord))
+                    wordCount[cleanedWord]++;
+                else
+                    wordCount[cleanedWord] = 1;
+            }
+
+            Console.WriteLine("\nFile: " + Path.GetFileName(file));
+            foreach (var pair in wordCount)
+            {
+                Console.WriteLine($"{pair.Key}: {pair.Value}");
+            }
         }
     }
 }
