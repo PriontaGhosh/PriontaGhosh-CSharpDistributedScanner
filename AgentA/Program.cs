@@ -1,37 +1,28 @@
 ﻿using System;
-using System.IO;
-using System.Collections.Generic;
+using System.IO.Pipes;
+using System.Text;
 
 class Program
 {
     static void Main(string[] args)
     {
-        Console.WriteLine("Enter the folder path that contains .txt files:");
-        string folderPath = Console.ReadLine();
-
-        string[] txtFiles = Directory.GetFiles(folderPath, "*.txt");
-
-        foreach (string file in txtFiles)
+        try
         {
-            string content = File.ReadAllText(file);
-            string[] words = content.Split(new char[] { ' ', '.', ',', '?', '!', ';', ':', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-
-            Dictionary<string, int> wordCount = new Dictionary<string, int>();
-
-            foreach (string word in words)
+            using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "agentApipe", PipeDirection.Out))
             {
-                string cleanedWord = word.ToLower();
-                if (wordCount.ContainsKey(cleanedWord))
-                    wordCount[cleanedWord]++;
-                else
-                    wordCount[cleanedWord] = 1;
-            }
+                Console.WriteLine("Connecting to Master...");
+                pipeClient.Connect();
 
-            Console.WriteLine("\nFile: " + Path.GetFileName(file));
-            foreach (var pair in wordCount)
-            {
-                Console.WriteLine($"{pair.Key}: {pair.Value}");
+                string testMessage = "Hello from AgentA!";
+                byte[] messageBytes = Encoding.UTF8.GetBytes(testMessage);
+
+                pipeClient.Write(messageBytes, 0, messageBytes.Length);
+                Console.WriteLine("Message sent to Master.");
             }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error: " + ex.Message);
         }
     }
 }
