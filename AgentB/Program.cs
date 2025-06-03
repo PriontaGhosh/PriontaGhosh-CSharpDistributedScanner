@@ -42,7 +42,7 @@ class Program
 
         try
         {
-            using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "agentApipe", PipeDirection.Out))
+            using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "agentBpipe", PipeDirection.Out))
             {
                 Console.WriteLine("Connecting to Master...");
                 pipeClient.Connect();
