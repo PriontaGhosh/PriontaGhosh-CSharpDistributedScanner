@@ -6,25 +6,13 @@ class Program
 {
     static void Main(string[] args)
     {
-        try
-        {
-            using (NamedPipeServerStream pipeServer = new NamedPipeServerStream("agentApipe", PipeDirection.In))
-            {
-                Console.WriteLine("Waiting for AgentA to connect...");
+        Thread agentAThread = new Thread(() => HandlePipe("agentApipe", "AgentA"));
+        Thread agentBThread = new Thread(() => HandlePipe("agentBpipe", "AgentB"));
 
-                pipeServer.WaitForConnection();
-                Console.WriteLine("AgentA connected.");
+        agentAThread.Start();
+        agentBThread.Start();
 
-                byte[] buffer = new byte[1024];
-                int bytesRead = pipeServer.Read(buffer, 0, buffer.Length);
-
-                string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                Console.WriteLine("Received from AgentA: " + receivedMessage);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("Error in Master: " + ex.Message);
-        }
+        agentAThread.Join();
+        agentBThread.Join();
     }
 }
