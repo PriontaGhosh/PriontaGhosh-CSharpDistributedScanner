@@ -5,17 +5,36 @@ using System.Threading;
 
 class Program
 {
-    static void Main(string[] args)
+   static void Main(string[] args)
+{
+    // this will hold all word data from both agents
+    var mergedWordCounts = new Dictionary<string, Dictionary<string, int>>();
+
+    // to avoid problems when 2 threads update at same time
+    object lockObj = new object();
+
+// run 2 threads for agentA and agentB to listen to their pipes
+    Thread agentAThread = new Thread(() => HandlePipe("agentApipe", "AgentA", mergedWordCounts, lockObj));
+    Thread agentBThread = new Thread(() => HandlePipe("agentBpipe", "AgentB", mergedWordCounts, lockObj));
+
+    agentAThread.Start();
+    agentBThread.Start();
+
+    agentAThread.Join();
+    agentBThread.Join();
+
+
+// final result after both agents done sending
+    Console.WriteLine("\n=== Final Merged Word Count ===");
+    foreach (var fileEntry in mergedWordCounts)
     {
-        Thread agentAThread = new Thread(() => HandlePipe("agentApipe", "AgentA"));
-        Thread agentBThread = new Thread(() => HandlePipe("agentBpipe", "AgentB"));
-
-        agentAThread.Start();
-        agentBThread.Start();
-
-        agentAThread.Join();
-        agentBThread.Join();
+        foreach (var wordEntry in fileEntry.Value)
+        {
+            Console.WriteLine($"{fileEntry.Key}:{wordEntry.Key}:{wordEntry.Value}");
+        }
     }
+}
+
 
     static void HandlePipe(string pipeName, string agentLabel)
     {
