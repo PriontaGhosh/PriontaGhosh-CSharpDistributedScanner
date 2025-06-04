@@ -36,26 +36,66 @@ class Program
 }
 
 
-    static void HandlePipe(string pipeName, string agentLabel)
+// this method will run in a thread and listen to a named pipe for one agent
+// it takes pipe name (like "agentApipe") and a label to know which agent is sending
+static void HandlePipe(string pipeName, string agentLabel, Dictionary<string, Dictionary<string, int>> sharedData, object lockObj)
+{
+    try
     {
-        try
+        // this will open a pipe server for receiving data
+        using (NamedPipeServerStream pipeServer = new NamedPipeServerStream(pipeName, PipeDirection.In))
         {
-            using (NamedPipeServerStream pipeServer = new NamedPipeServerStream(pipeName, PipeDirection.In))
+            Console.WriteLine($"{agentLabel}: Waiting for connection on pipe '{pipeName}'...");
+            pipeServer.WaitForConnection();
+            Console.WriteLine($"{agentLabel}: Connected.");
+
+            // read the incoming data from the agent
+            byte[] buffer = new byte[4096];
+            int bytesRead = pipeServer.Read(buffer, 0, buffer.Length);
+
+            // convert the byte data into a string message
+            string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+            // split the message into lines, each line has file:word:count
+            string[] lines = receivedMessage.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+            // use lock to avoid data conflicts when both threads update the same dictionary
+            lock (lockObj)
             {
-                Console.WriteLine($"{agentLabel}: Waiting for connection on pipe '{pipeName}'...");
-                pipeServer.WaitForConnection();
-                Console.WriteLine($"{agentLabel}: Connected.");
+                foreach (string line in lines)
+                {
+                    // split line into file, word, and count
+                    string[] parts = line.Trim().Split(':');
+                    if (parts.Length == 3)
+                    {
+                        string file = parts[0];
+                        string word = parts[1];
 
-                byte[] buffer = new byte[4096];
-                int bytesRead = pipeServer.Read(buffer, 0, buffer.Length);
-                string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                        // convert count to number (ignore line if it's not a number)
+                        if (!int.TryParse(parts[2], out int count)) continue;
 
-                Console.WriteLine($"{agentLabel}: Received Data:\n{receivedMessage}");
+                        // if this file is not in the dictionary, add it
+                        if (!sharedData.ContainsKey(file))
+                            sharedData[file] = new Dictionary<string, int>();
+
+                        // add or update the word count
+                        if (sharedData[file].ContainsKey(word))
+                            sharedData[file][word] += count;
+                        else
+                            sharedData[file][word] = count;
+                    }
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"{agentLabel} Error: {ex.Message}");
+
+            Console.WriteLine($"{agentLabel}: Data processed.");
         }
     }
+    catch (Exception ex)
+    {
+        // if anything goes wrong, print the error
+        Console.WriteLine($"{agentLabel} Error: {ex.Message}");
+    }
+}
+
+
 }
