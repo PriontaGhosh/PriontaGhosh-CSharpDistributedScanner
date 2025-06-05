@@ -17,7 +17,19 @@ class Program
             return;
         }
 
-        string[] txtFiles = Directory.GetFiles(folderPath, "*.txt");
+       bool isAgentA = false;  // AgentB will take the second half
+
+string[] allFiles = Directory.GetFiles(folderPath, "*.txt");
+int total = allFiles.Length;
+int mid = total / 2;
+
+string[] filesToProcess;
+
+if (isAgentA)
+    filesToProcess = allFiles.Take(mid).ToArray();
+else
+    filesToProcess = allFiles.Skip(mid).ToArray(); 
+
 
         Dictionary<string, Dictionary<string, int>> fileWordCounts = new Dictionary<string, Dictionary<string, int>>();
 
