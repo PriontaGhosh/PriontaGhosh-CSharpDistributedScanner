@@ -33,7 +33,7 @@ else
 
         Dictionary<string, Dictionary<string, int>> fileWordCounts = new Dictionary<string, Dictionary<string, int>>();
 
-        foreach (string file in txtFiles)
+        foreach (string file in filesToProcess) // loop through the files assigned to this agent only
         {
             string content = File.ReadAllText(file);
             string[] words = content.Split(new char[] { ' ', '.', ',', '?', '!', ';', ':', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
