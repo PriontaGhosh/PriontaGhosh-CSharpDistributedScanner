@@ -16,12 +16,25 @@ class Program
             Console.WriteLine("No folder path entered. Exiting.");
             return;
         }
+        // split the file list between AgentA and AgentB so both don't scan same files
 
-        string[] txtFiles = Directory.GetFiles(folderPath, "*.txt");
+      bool isAgentA = true; // manually define this for AgentA
+
+string[] allFiles = Directory.GetFiles(folderPath, "*.txt");
+int total = allFiles.Length;
+int mid = total / 2;
+
+string[] filesToProcess;
+
+if (isAgentA)
+    filesToProcess = allFiles.Take(mid).ToArray(); // AgentA takes first half
+else
+    filesToProcess = allFiles.Skip(mid).ToArray();
+
 
         Dictionary<string, Dictionary<string, int>> fileWordCounts = new Dictionary<string, Dictionary<string, int>>();
 
-        foreach (string file in txtFiles)
+        foreach (string file in filesToProcess)
         {
             string content = File.ReadAllText(file);
             string[] words = content.Split(new char[] { ' ', '.', ',', '?', '!', ';', ':', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
