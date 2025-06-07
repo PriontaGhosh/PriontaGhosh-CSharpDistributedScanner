@@ -2,12 +2,14 @@
 using System.IO.Pipes;
 using System.Text;
 using System.Threading;
+using System.Diagnostics;
 
 class Program
 {
    static void Main(string[] args)
 {
-    
+    // run master on CPU core 2
+Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 2);
     // this will hold all word data from both agents
         var mergedWordCounts = new Dictionary<string, Dictionary<string, int>>();
 
