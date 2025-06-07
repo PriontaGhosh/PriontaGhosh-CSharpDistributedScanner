@@ -3,11 +3,14 @@ using System.IO;
 using System.IO.Pipes;
 using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 class Program
 {
     static void Main(string[] args)
     {
+        // run master on CPU core 2
+Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 2);
         Console.WriteLine("Enter the folder path that contains .txt files:");
         string? folderPath = Console.ReadLine();
 
