@@ -7,8 +7,9 @@ class Program
 {
    static void Main(string[] args)
 {
+    
     // this will hold all word data from both agents
-    var mergedWordCounts = new Dictionary<string, Dictionary<string, int>>();
+        var mergedWordCounts = new Dictionary<string, Dictionary<string, int>>();
 
     // to avoid problems when 2 threads update at same time
     object lockObj = new object();

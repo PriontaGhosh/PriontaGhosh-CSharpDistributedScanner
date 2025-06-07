@@ -9,8 +9,8 @@ class Program
 {
     static void Main(string[] args)
     {
-        // run master on CPU core 2
-Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 2);
+        // run this agent on CPU core 1
+Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 1);
         Console.WriteLine("Enter the folder path that contains .txt files:");
         string? folderPath = Console.ReadLine();
 
