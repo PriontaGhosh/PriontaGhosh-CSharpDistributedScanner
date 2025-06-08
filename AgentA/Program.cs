@@ -7,21 +7,21 @@ using System.Diagnostics;
 
 class Program
 {
-// here I will store the word counts
-static Dictionary<string, Dictionary<string, int>> fileWordCounts = new();
+    // here I will store the word counts
+    static Dictionary<string, Dictionary<string, int>> fileWordCounts = new();
 
-// used to signal when reading is finished
-static ManualResetEvent dataReady = new(false);
+    // used to signal when reading is finished
+    static ManualResetEvent dataReady = new(false);
 
-// to keep the folder path user gives
-static string folderPath = "";
+    // to keep the folder path user gives
+    static string folderPath = "";
 
     static void Main(string[] args)
     {
         // run this agent on CPU core 0
         Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 0);
         Console.WriteLine("Enter the folder path that contains .txt files:");
-        folderPath = Console.ReadLine();  // ✅ now updates the global variable
+        folderPath = Console.ReadLine();  //  now updates the global variable
 
         if (string.IsNullOrWhiteSpace(folderPath))
         {
@@ -29,41 +29,13 @@ static string folderPath = "";
             return;
         }
 
-// this thread reads all the txt files and counts words
-static void ReadFilesAndCountWords()
-{
-    bool isAgentA = true; // this is AgentA
-    string[] allFiles = Directory.GetFiles(folderPath, "*.txt");
-    int total = allFiles.Length;
-    int mid = total / 2;
+        // start thread to read files and count words
+        Thread readThread = new Thread(ReadFilesAndCountWords);
+        readThread.Start();
 
-    // AgentA will take first half of files
-    string[] filesToProcess = isAgentA
-        ? allFiles[..mid]
-        : allFiles[mid..];
+        // wait for reading to finish before moving forward
+        readThread.Join();
 
-    foreach (string file in filesToProcess)
-    {
-        string fileName = Path.GetFileName(file);
-        string[] words = File.ReadAllText(file)
-            .ToLower()
-            .Split(new[] { ' ', '\r', '\n', '.', ',', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
-
-        Dictionary<string, int> wordCounts = new();
-        foreach (string word in words)
-        {
-            if (wordCounts.ContainsKey(word))
-                wordCounts[word]++;
-            else
-                wordCounts[word] = 1;
-        }
-
-        fileWordCounts[fileName] = wordCounts;
-    }
-
-    // let the other thread know that reading is done
-    dataReady.Set();
-}
 
 
 
@@ -93,4 +65,44 @@ static void ReadFilesAndCountWords()
             Console.WriteLine("Error: " + ex.Message);
         }
     }
+
+
+// this thread reads all the txt files and counts words
+        static void ReadFilesAndCountWords()
+        {
+            bool isAgentA = true; // this is AgentA
+            string[] allFiles = Directory.GetFiles(folderPath, "*.txt");
+            int total = allFiles.Length;
+            int mid = total / 2;
+
+            // AgentA will take first half of files
+            string[] filesToProcess = isAgentA
+                ? allFiles[..mid]
+                : allFiles[mid..];
+
+            foreach (string file in filesToProcess)
+            {
+                string fileName = Path.GetFileName(file);
+                string[] words = File.ReadAllText(file)
+                    .ToLower()
+                    .Split(new[] { ' ', '\r', '\n', '.', ',', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
+
+                Dictionary<string, int> wordCounts = new();
+                foreach (string word in words)
+                {
+                    if (wordCounts.ContainsKey(word))
+                        wordCounts[word]++;
+                    else
+                        wordCounts[word] = 1;
+                }
+
+                fileWordCounts[fileName] = wordCounts;
+            }
+
+            // let the other thread know that reading is done
+            dataReady.Set();
+        }
+
 }
+
+
