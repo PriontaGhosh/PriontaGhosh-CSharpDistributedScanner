@@ -29,7 +29,44 @@ static string folderPath = "";
             return;
         }
 
-       
+// this thread reads all the txt files and counts words
+static void ReadFilesAndCountWords()
+{
+    bool isAgentA = true; // this is AgentA
+    string[] allFiles = Directory.GetFiles(folderPath, "*.txt");
+    int total = allFiles.Length;
+    int mid = total / 2;
+
+    // AgentA will take first half of files
+    string[] filesToProcess = isAgentA
+        ? allFiles[..mid]
+        : allFiles[mid..];
+
+    foreach (string file in filesToProcess)
+    {
+        string fileName = Path.GetFileName(file);
+        string[] words = File.ReadAllText(file)
+            .ToLower()
+            .Split(new[] { ' ', '\r', '\n', '.', ',', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
+
+        Dictionary<string, int> wordCounts = new();
+        foreach (string word in words)
+        {
+            if (wordCounts.ContainsKey(word))
+                wordCounts[word]++;
+            else
+                wordCounts[word] = 1;
+        }
+
+        fileWordCounts[fileName] = wordCounts;
+    }
+
+    // let the other thread know that reading is done
+    dataReady.Set();
+}
+
+
+
         try
         {
             using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "agentApipe", PipeDirection.Out))
