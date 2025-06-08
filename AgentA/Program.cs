@@ -7,10 +7,19 @@ using System.Diagnostics;
 
 class Program
 {
+// here I will store the word counts
+static Dictionary<string, Dictionary<string, int>> fileWordCounts = new();
+
+// used to signal when reading is finished
+static ManualResetEvent dataReady = new(false);
+
+// to keep the folder path user gives
+static string folderPath = "";
+
     static void Main(string[] args)
     {
         // run this agent on CPU core 0
-Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 0);
+        Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 0);
         Console.WriteLine("Enter the folder path that contains .txt files:");
         string? folderPath = Console.ReadLine();
 
@@ -21,18 +30,18 @@ Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 0);
         }
         // split the file list between AgentA and AgentB so both don't scan same files
 
-      bool isAgentA = true; // manually define this for AgentA
+        bool isAgentA = true; // manually define this for AgentA
 
-string[] allFiles = Directory.GetFiles(folderPath, "*.txt");
-int total = allFiles.Length;
-int mid = total / 2;
+        string[] allFiles = Directory.GetFiles(folderPath, "*.txt");
+        int total = allFiles.Length;
+        int mid = total / 2;
 
-string[] filesToProcess;
+        string[] filesToProcess;
 
-if (isAgentA)
-    filesToProcess = allFiles.Take(mid).ToArray(); // AgentA takes first half
-else
-    filesToProcess = allFiles.Skip(mid).ToArray();
+        if (isAgentA)
+            filesToProcess = allFiles.Take(mid).ToArray(); // AgentA takes first half
+        else
+            filesToProcess = allFiles.Skip(mid).ToArray();
 
 
         Dictionary<string, Dictionary<string, int>> fileWordCounts = new Dictionary<string, Dictionary<string, int>>();
