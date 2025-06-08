@@ -20,6 +20,8 @@ class Program
     {
         // run this agent on CPU core 0
         Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 0);
+        Console.WriteLine("Hello from AgentA (running on CPU core 0)");
+
         Console.WriteLine("Enter the folder path that contains .txt files:");
         folderPath = Console.ReadLine();  //  now updates the global variable
 
@@ -29,6 +31,9 @@ class Program
             return;
         }
 
+  Console.WriteLine("You entered: " + folderPath);
+Console.WriteLine("AgentA reading files...");
+
         // start thread to read files and count words
         Thread readThread = new Thread(ReadFilesAndCountWords);
         readThread.Start();
@@ -37,10 +42,11 @@ class Program
         readThread.Join();
 
 
+     
        // now start thread to send data to Master
-Thread sendThread = new Thread(SendDataToMaster);
-sendThread.Start();
-sendThread.Join();
+        Thread sendThread = new Thread(SendDataToMaster);
+         sendThread.Start();
+         sendThread.Join();
 
 
      
@@ -79,6 +85,9 @@ sendThread.Join();
             fileWordCounts[fileName] = wordCounts;
         }
 
+        Console.WriteLine("Word counting done by AgentA.");
+
+
         // let the other thread know that reading is done
         dataReady.Set();
     }
@@ -94,22 +103,22 @@ static void SendDataToMaster()
 
     try
     {
-        using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "agentApipe", PipeDirection.Out))
-        {
-            pipeClient.Connect();
-
-            StringBuilder sb = new StringBuilder();
-            foreach (var fileEntry in fileWordCounts)
+            using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "agentApipe", PipeDirection.Out))
             {
-                foreach (var wordEntry in fileEntry.Value)
-                {
-                    sb.AppendLine($"{fileEntry.Key}:{wordEntry.Key}:{wordEntry.Value}");
-                }
-            }
+                pipeClient.Connect();
 
-            byte[] messageBytes = Encoding.UTF8.GetBytes(sb.ToString());
-            pipeClient.Write(messageBytes, 0, messageBytes.Length);
-            Console.WriteLine("Word count data sent to Master.");
+                StringBuilder sb = new StringBuilder();
+                foreach (var fileEntry in fileWordCounts)
+                {
+                    foreach (var wordEntry in fileEntry.Value)
+                    {
+                        sb.AppendLine($"{fileEntry.Key}:{wordEntry.Key}:{wordEntry.Value}");
+                    }
+                }
+
+                byte[] messageBytes = Encoding.UTF8.GetBytes(sb.ToString());
+                pipeClient.Write(messageBytes, 0, messageBytes.Length);
+                Console.WriteLine("AgentA sent word data to Master.");
         }
     }
     catch (Exception ex)
