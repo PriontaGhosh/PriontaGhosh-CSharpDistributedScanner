@@ -11,6 +11,8 @@ class Program
     // stores the final result of word frequencies per file
     static Dictionary<string, Dictionary<string, int>> results = new();
 
+    static ManualResetEvent dataReady = new(false);
+
     static void CountWordsFromFiles(string folderPath)
     {
         Console.WriteLine("AgentB reading files...");
@@ -41,6 +43,7 @@ class Program
 
             results[fileName] = wordFreq;
         }
+
         /*
              // print what was counted for each file
         foreach (var file in results)
@@ -52,61 +55,77 @@ class Program
             }
         }
         */
-   
+
 
         Console.WriteLine("Word counting done by AgentB.");
+
+
+        // signal the sender thread that is done
+        dataReady.Set();
     }
 
-static void SendDataToMaster()
-{
-    Console.WriteLine("Connecting to Master...");
-
-    try
+    static void SendDataToMaster()
     {
-        using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "agentBpipe", PipeDirection.Out))
+        Console.WriteLine("Connecting to Master...");
+
+
+        // wait until reading finishes
+        dataReady.WaitOne();
+
+
+        try
         {
-            pipeClient.Connect();
-
-            StringBuilder sb = new StringBuilder();
-
-            foreach (var fileEntry in results)
+            using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "agentBpipe", PipeDirection.Out))
             {
-                foreach (var wordEntry in fileEntry.Value)
+                pipeClient.Connect();
+
+                StringBuilder sb = new StringBuilder();
+
+                foreach (var fileEntry in results)
                 {
-                    sb.AppendLine($"{fileEntry.Key}:{wordEntry.Key}:{wordEntry.Value}");
+                    foreach (var wordEntry in fileEntry.Value)
+                    {
+                        sb.AppendLine($"{fileEntry.Key}:{wordEntry.Key}:{wordEntry.Value}");
+                    }
                 }
+
+                byte[] buffer = Encoding.UTF8.GetBytes(sb.ToString());
+                pipeClient.Write(buffer, 0, buffer.Length);
+
+                Console.WriteLine("AgentB sent word data to Master.");
             }
-
-            byte[] buffer = Encoding.UTF8.GetBytes(sb.ToString());
-            pipeClient.Write(buffer, 0, buffer.Length);
-
-            Console.WriteLine("AgentB sent word data to Master.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Failed to send data: " + ex.Message);
         }
     }
-    catch (Exception ex)
+
+static void Main(string[] args)
+{
+    Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 1);
+    Console.WriteLine("Hello from AgentB (running on CPU core 1)");
+
+    Console.Write("Enter path to .txt files: ");
+    string? folder = Console.ReadLine();
+
+    if (string.IsNullOrWhiteSpace(folder))
     {
-        Console.WriteLine("Failed to send data: " + ex.Message);
+        Console.WriteLine("No folder path entered. Exiting.");
+        return;
     }
+
+    Console.WriteLine("You entered: " + folder);
+
+    Thread readThread = new Thread(() => CountWordsFromFiles(folder));
+    Thread sendThread = new Thread(SendDataToMaster);
+
+    readThread.Start();
+    sendThread.Start();
+
+    readThread.Join();
+    sendThread.Join();
 }
 
 
-    static void Main(string[] args)
-    {
-        // run AgentB on CPU core 1
-        Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)(1 << 1);
-        Console.WriteLine("Hello from AgentB (running on CPU core 1)");
-
-        Console.Write("Enter path to .txt files: ");
-        string? folder = Console.ReadLine();
-
-        if (string.IsNullOrWhiteSpace(folder))
-        {
-            Console.WriteLine("No folder path entered. Exiting.");
-            return;
-        }
-
-        Console.WriteLine("You entered: " + folder);
-        CountWordsFromFiles(folder); // call file reading
-        SendDataToMaster();
-    }
 }
